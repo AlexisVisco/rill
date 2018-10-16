@@ -53,13 +53,13 @@ func newNamespaceCommand(parent *Commands, command Command, shortDesc string, de
 
 func (c *NamespaceCommand) Cmd(methodName string, desc string, shortDesc string) *NamespaceCommand {
 	met := reflect.ValueOf(c.command).MethodByName(methodName)
-	processor := CommandInfo{
+	info := CommandInfo{
 		MethodName:       methodName,
 		Description:      desc,
 		ShortDescription: shortDesc,
 		numParams:        met.Type().NumIn(),
 	}
-	c.infos = append(c.infos, processor)
+	c.infos = append(c.infos, info)
 	return c
 }
 
