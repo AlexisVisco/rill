@@ -14,10 +14,11 @@ import (
 // =
 // t hello => t.hello("hello")
 type CommandInfo struct {
-	MethodName       string
-	Description      string
-	ShortDescription string
-	numParams        int
+	MethodName  string
+	Description string
+
+	namesParams []string
+	numParams   int
 }
 
 // The NamespaceCommand is a entity that own a amount
@@ -51,13 +52,13 @@ func newNamespaceCommand(parent *Commands, command Command, shortDesc string, de
 	return namespace
 }
 
-func (c *NamespaceCommand) Cmd(methodName string, desc string, shortDesc string) *NamespaceCommand {
+func (c *NamespaceCommand) Cmd(methodName string, desc string, nameParams ...string) *NamespaceCommand {
 	met := reflect.ValueOf(c.command).MethodByName(methodName)
 	info := CommandInfo{
-		MethodName:       methodName,
-		Description:      desc,
-		ShortDescription: shortDesc,
-		numParams:        met.Type().NumIn(),
+		MethodName:  methodName,
+		Description: desc,
+		numParams:   met.Type().NumIn(),
+		namesParams: nameParams,
 	}
 	c.infos = append(c.infos, info)
 	return c
@@ -75,7 +76,7 @@ func (c *NamespaceCommand) injectFlags(cmd interface{}, flags map[string]string)
 		for key, value := range flags {
 			if fieldName, ok := c.Flags[key]; ok {
 				field := vStruct.Elem().FieldByName(fieldName)
-				result, err := valueFromString(field.Kind(), value)
+				result, err := valueFromString(field.Type(), value)
 				if err == nil {
 					field.Set(reflect.ValueOf(result))
 				}
@@ -94,13 +95,18 @@ func (c *NamespaceCommand) registerFlags(command Command) {
 	fields := tStruct.NumField()
 	for x := 0; x < fields; x++ {
 		f := tStruct.Field(x)
-		aliases := strings.Split(f.Tag.Get("fl"), ",")
-		desc := f.Tag.Get("flDesc")
-		flDesc[strings.ToLower(f.Name)] = desc
-		fl[strings.ToLower(f.Name)] = f.Name
-		for _, al := range aliases {
-			fl[al] = f.Name
+		if rawAliases, ok := f.Tag.Lookup("fl"); ok {
+			aliases := strings.Split(rawAliases, ",")
+			for _, al := range aliases {
+				fl[al] = f.Name
+			}
 		}
+		if desc, ok := f.Tag.Lookup("flDesc"); ok {
+			flDesc[strings.ToLower(f.Name)] = desc
+
+		}
+
+		fl[strings.ToLower(f.Name)] = f.Name
 	}
 	c.Flags = fl
 	c.FlagsDescription = flDesc

@@ -10,11 +10,15 @@ type Command interface {
 }
 
 type Commands struct {
-	commands map[string]*NamespaceCommand
+	commands     map[string]*NamespaceCommand
+	commandsList []string
 }
 
 func Rill() *Commands {
-	return &Commands{make(map[string]*NamespaceCommand)}
+	return &Commands{
+		commands:     make(map[string]*NamespaceCommand),
+		commandsList: make([]string, 0),
+	}
 }
 
 func (c *Commands) Add(command Command, shortDesc string, desc string) *NamespaceCommand {
@@ -28,4 +32,5 @@ func (c *Commands) registerCommand(command Command, namespace *NamespaceCommand)
 	for _, alias := range command.CommandAliases() {
 		c.commands[alias] = namespace
 	}
+	c.commandsList = append(c.commandsList, command.CommandLabel())
 }

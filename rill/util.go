@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+var CustomTypes = make(map[reflect.Type]FromString)
+
+type FromString func(string) (interface{}, error)
+
 // parseFlags parse flags like: --flag=value
 //                              --flag
 // Return a map where --key=value, if --key format
@@ -24,11 +28,11 @@ func parseFlags(s []string) (map[string]string, []string) {
 				if len(split) < 2 {
 					continue
 				} else { // the flag is a boolean because --flag is eq to true
-					key := strings.TrimPrefix(split[0], "--")
+					key := strings.ToLower(strings.TrimPrefix(split[0], "--"))
 					flags[key] = split[1]
 				}
 			} else { // it is not a flag
-				key := strings.TrimPrefix(arg, "--")
+				key := strings.ToLower(strings.TrimPrefix(arg, "--"))
 				flags[key] = "true"
 			}
 		} else {
@@ -42,8 +46,8 @@ func parseFlags(s []string) (map[string]string, []string) {
 // interface{}.
 // Return the value cast into an interface or an error, if the strVal
 // cannot be parsed.
-func valueFromString(kind reflect.Kind, strVal string) (interface{}, error) {
-	switch kind {
+func valueFromString(typ reflect.Type, strVal string) (interface{}, error) {
+	switch typ.Kind() {
 	case reflect.Int64:
 		val, err := strconv.ParseInt(strVal, 0, 64)
 		if err != nil {
@@ -77,7 +81,13 @@ func valueFromString(kind reflect.Kind, strVal string) (interface{}, error) {
 		}
 		return val, nil
 	default:
-		return nil, errors.New("Unsupported kind: " + kind.String())
+		if f, ok := CustomTypes[typ]; ok {
+			val, e := f(strVal)
+			if e == nil {
+				return val, nil
+			}
+		}
+		return nil, errors.New("Unsupported kind: " + typ.String())
 	}
-	return nil, errors.New("Unsupported kind: " + kind.String())
+	return nil, errors.New("Unsupported kind: " + typ.String())
 }
