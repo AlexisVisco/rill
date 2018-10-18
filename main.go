@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlexisVisco/rill/rill"
+	"os"
 	"reflect"
 )
 
@@ -22,7 +23,7 @@ func init() {
 }
 
 type yeah struct {
-	Pos bool `fl:"p,po" flDesc:"position of something"`
+	Pos bool `fl:"pos,P" flDesc:"position of something"`
 }
 
 func (yeah) Clone() interface{} {
@@ -80,6 +81,6 @@ func main() {
 		Cmd("Empty", "Empty short desc").
 		Cmd("All", "All short desc", "*all")
 
-	commands.Dispatch([]string{"y", "123", "hello"})
+	commands.Dispatch(os.Args[1:])
 	//rill.HelpCommand(*cmd)
 }

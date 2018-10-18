@@ -9,17 +9,31 @@ import (
 	"text/tabwriter"
 )
 
+type ArgList []Arg
+
+func (p ArgList) Len() int           { return len(p) }
+func (p ArgList) Less(i, j int) bool { return p[i].name < p[j].name }
+func (p ArgList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+type Arg struct {
+	name string
+	desc string
+}
+
 func Help(cmd Commands) {
 	fmt.Println("Usage:  taskmaster COMMAND [OPTIONS]")
 	fmt.Println("\nA simple management process write for 101\n")
 
 	sort.Strings(cmd.commandsList)
 
-	cmdDesc := make(map[string]string)
+	arglist := make(ArgList, 0)
 	for _, label := range cmd.commandsList {
-		cmdDesc[label] = cmd.commands[label].command.CommandDescription()
+		arglist = append(arglist, Arg{
+			name: label,
+			desc: cmd.commands[label].command.CommandDescription(),
+		})
 	}
-	alignKeyValue("Commands", cmdDesc)
+	alignKeyValue("Commands", arglist)
 	fmt.Println("\nRun 'taskmaster COMMAND --help' for more information on a command namespace.")
 }
 
@@ -27,11 +41,14 @@ func HelpCommand(namespace NamespaceCommand) {
 	fmt.Printf("Usage:  taskmaster %s [ARGS] [OPTIONS]\n", namespace.command.CommandLabel())
 	fmt.Printf("\nAliases: %s\n", strings.Join(namespace.command.CommandAliases(), ", "))
 	fmt.Printf("\n%s\n\n", namespace.command.CommandDescription())
-	argsDesc := make(map[string]string)
+	arglist := make(ArgList, 0)
 	for _, v := range namespace.infos {
-		argsDesc[getTypesFormatted(v, namespace.command)] = v.Description
+		arglist = append(arglist, Arg{
+			name: getTypesFormatted(v, namespace.command),
+			desc: v.Description,
+		})
 	}
-	alignKeyValue("Args:", argsDesc)
+	alignKeyValue("Args:", arglist)
 	println()
 	alignFlags(namespace.FlagsDescription, namespace.command)
 }
@@ -61,6 +78,9 @@ func getTypesFormatted(info CommandInfo, c Command) string {
 }
 
 func alignFlags(flags map[string]string, command Command) {
+	if len(flags) == 0 {
+		return
+	}
 	fmt.Println("Options:")
 	vStruct := reflect.ValueOf(command)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
@@ -71,11 +91,12 @@ func alignFlags(flags map[string]string, command Command) {
 	w.Flush()
 }
 
-func alignKeyValue(title string, commandDesc map[string]string) {
+func alignKeyValue(title string, commandDesc ArgList) {
+	sort.Sort(commandDesc)
 	fmt.Println(title)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
-	for k, v := range commandDesc {
-		fmt.Fprintln(w, fmt.Sprintf("  %s\t%s", k, v))
+	for _, v := range commandDesc {
+		fmt.Fprintln(w, fmt.Sprintf("  %s\t%s", v.name, v.desc))
 	}
 	w.Flush()
 }

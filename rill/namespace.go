@@ -100,13 +100,12 @@ func (c *NamespaceCommand) registerFlags(command Command) {
 			for _, al := range aliases {
 				fl[al] = f.Name
 			}
+			if desc, ok := f.Tag.Lookup("flDesc"); ok {
+				flDesc[aliases[0]] = desc
+			} else {
+				flDesc[aliases[0]] = "no description available for this option"
+			}
 		}
-		if desc, ok := f.Tag.Lookup("flDesc"); ok {
-			flDesc[strings.ToLower(f.Name)] = desc
-
-		}
-
-		fl[strings.ToLower(f.Name)] = f.Name
 	}
 	c.Flags = fl
 	c.FlagsDescription = flDesc

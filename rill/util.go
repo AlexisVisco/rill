@@ -47,6 +47,12 @@ func parseFlags(s []string) (map[string]string, []string) {
 // Return the value cast into an interface or an error, if the strVal
 // cannot be parsed.
 func valueFromString(typ reflect.Type, strVal string) (interface{}, error) {
+	if f, ok := CustomTypes[typ]; ok {
+		val, e := f(strVal)
+		if e == nil {
+			return val, nil
+		}
+	}
 	switch typ.Kind() {
 	case reflect.Int64:
 		val, err := strconv.ParseInt(strVal, 0, 64)
@@ -81,12 +87,6 @@ func valueFromString(typ reflect.Type, strVal string) (interface{}, error) {
 		}
 		return val, nil
 	default:
-		if f, ok := CustomTypes[typ]; ok {
-			val, e := f(strVal)
-			if e == nil {
-				return val, nil
-			}
-		}
 		return nil, errors.New("Unsupported kind: " + typ.String())
 	}
 	return nil, errors.New("Unsupported kind: " + typ.String())
